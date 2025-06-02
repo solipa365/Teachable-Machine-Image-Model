@@ -1,0 +1,15 @@
+{
+    "tfjsVersion":"1.7.4",
+    "tmVersion":"2.4.10",
+    "packageVersion":"0.8.4-alpha2",
+    "packageName":"@teachablemachine/image",
+    "timeStamp":"2025-05-05T09:49:19.956Z",
+    "userMetadata":{},
+    "modelName":"medicamentos",
+    "labels":
+            [
+                "Vermelho oval",
+                "Branco redondo"
+            ],
+    "imageSize":224
+}
