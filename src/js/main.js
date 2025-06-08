@@ -99,3 +99,120 @@ async function predict() {
         labelContainer.childNodes[i].innerHTML = classPrediction;
     }
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("schedule-form");
+    const medNameInput = document.getElementById("med-name");
+    const medTimeInput = document.getElementById("med-time");
+    const scheduleList = document.getElementById("schedule-list");
+
+    let medicamentos = [];
+
+    function carregarMedicamentos() {
+        const dados = localStorage.getItem("medicamentos");
+        if (dados) {
+            medicamentos = JSON.parse(dados);
+            medicamentos.forEach((med) => {
+                adicionarMedicamentoNaLista(med.name, med.time, med.alerted);
+            });
+        }
+    }
+
+    function guardarMedicamentos() {
+        localStorage.setItem("medicamentos", JSON.stringify(medicamentos));
+    }
+
+    function adicionarMedicamentoNaLista(name, time, alerted = false) {
+        const li = document.createElement("li");
+        li.textContent = `${name} - ${time}`;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remover";
+        removeBtn.className = "remove-button";
+        removeBtn.onclick = () => {
+            scheduleList.removeChild(li);
+            medicamentos = medicamentos.filter((m) => !(m.name === name && m.time === time));
+            guardarMedicamentos();
+        };
+
+        li.appendChild(removeBtn);
+        scheduleList.appendChild(li);
+
+        atualizarClasseHorario(li, time);
+    }
+
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const name = medNameInput.value.trim();
+        const time = medTimeInput.value;
+
+        if (!name || !time) return;
+
+        medicamentos.push({ name, time, alerted: false });
+        guardarMedicamentos();
+        adicionarMedicamentoNaLista(name, time);
+
+        medNameInput.value = "";
+        medTimeInput.value = "";
+    });
+
+    function atualizarClasseHorario(li, time) {
+        const [hour, minute] = time.split(":").map(Number);
+        const agora = new Date();
+        const horaMedicamento = new Date();
+        horaMedicamento.setHours(hour, minute, 0, 0);
+
+        const agoraMs = agora.getTime();
+        const medMs = horaMedicamento.getTime();
+
+        li.classList.remove("medicamento-futuro", "medicamento-passado", "medicamento-agora");
+
+        if (medMs > agoraMs) {
+            li.classList.add("medicamento-futuro");
+        } else if (medMs < agoraMs) {
+            li.classList.add("medicamento-passado");
+        } else {
+            li.classList.add("medicamento-agora");
+        }
+    }
+
+    setInterval(() => {
+        const agora = new Date();
+        const horaAtual = agora.getHours().toString().padStart(2, "0") + ":" + agora.getMinutes().toString().padStart(2, "0");
+
+        medicamentos.forEach((med) => {
+            if (med.time === horaAtual && !med.alerted) {
+                const alertSound = document.getElementById("alert-sound");
+                if (alertSound) {
+                    alertSound.play().catch(error => {
+                        console.error("Erro ao tocar som:", error);
+                    });
+                }
+
+                alert(`⏰ Está na hora de tomar o medicamento: ${med.name}`);
+                med.alerted = true;
+                guardarMedicamentos();
+            }
+        });
+
+        const items = scheduleList.querySelectorAll("li");
+        items.forEach((li) => {
+            const texto = li.firstChild.textContent || "";
+            const partes = texto.split(" - ");
+            if (partes.length === 2) {
+                const time = partes[1].trim();
+                atualizarClasseHorario(li, time);
+            }
+        });
+    }, 1000);
+
+    document.addEventListener("click", () => {
+        const alertSound = document.getElementById("alert-sound");
+        if (alertSound) {
+            alertSound.play().then(() => alertSound.pause());
+        }
+    }, { once: true });
+
+    carregarMedicamentos();
+});

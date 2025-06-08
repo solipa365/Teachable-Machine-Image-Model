@@ -9,37 +9,42 @@
 
     <title>Teachable Machine</title>
 
-    <!-- Favicons -->
     <link href="/src/img/favicon.png" rel="icon">
     <link href="/src/img/apple-touch-icon.png" rel="apple-touch-icon">
 
-    <!-- Estilos -->
     <link href="/src/css/style.css" rel="stylesheet">
 
-    <!-- Bibliotecas do Teachable Machine e TensorFlow.js -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
 </head>
 
 <body>
-    <!-- Cabeçalho -->
     <header>
         <h1 id="main-header">Teachable Machine Image Model</h1>
     </header>
 
-    <!-- Conteúdo principal -->
     <main>
         <button id="start-button" type="button" onclick="init()">Start</button>
         <div id="webcam-container"></div>
         <div id="label-container"></div>
     </main>
 
-    <!-- Rodapé -->
+    <section id="med-schedule">
+        <h2>Agenda de Medicamentos</h2>
+        <form id="schedule-form">
+            <input type="text" id="med-name" placeholder="Nome do Medicamento" required>
+            <input type="time" id="med-time" required>
+            <button type="submit">Adicionar</button>
+        </form>
+        <ul id="schedule-list"></ul>
+    </section>
+
     <footer id="main-footer">
         <img src="/src/img/WAICY-logo.png" alt="Imagem do Rodapé">
     </footer>
 
-    <!-- JavaScript -->
     <script src="/src/js/main.js"></script>
+
+    <audio id="alert-sound" src="/src/sounds/alerta.mp3" preload="auto"></audio>
 </body>
 </html>
