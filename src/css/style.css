@@ -129,8 +129,10 @@ main div {
 
 #schedule-form input,
 #schedule-form button {
+    width: 100%;
     padding: 10px;
     font-size: 1rem;
+    box-sizing: border-box;
 }
 
 #schedule-list {
