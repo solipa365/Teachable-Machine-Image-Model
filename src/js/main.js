@@ -111,10 +111,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const dados = localStorage.getItem("medicamentos");
         if (dados) {
             medicamentos = JSON.parse(dados);
-
-            medicamentos.sort((a, b) => a.time.localeCompare(b.time));
-
-            scheduleList.innerHTML = "";
             medicamentos.forEach((med) => {
                 adicionarMedicamentoNaLista(med.name, med.time, med.alerted);
             });
@@ -144,13 +140,25 @@ document.addEventListener("DOMContentLoaded", function () {
         atualizarClasseHorario(li, time);
     }
 
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const name = medNameInput.value.trim();
         const time = medTimeInput.value;
 
         if (!name || !time) return;
+
+        const [hour, minute] = time.split(":").map(Number);
+        const agora = new Date();
+        const horaMedicamento = new Date();
+        horaMedicamento.setHours(hour, minute, 0, 0);
+
+        if (horaMedicamento.getTime() < agora.getTime()) {
+            const confirmacao = await showCustomConfirm(
+                "⚠️ Atenção: A hora deste medicamento já passou hoje. Deseja adicioná-lo mesmo assim?"
+            );
+            if (!confirmacao) return;
+        }
 
         medicamentos.push({ name, time, alerted: false });
 
@@ -225,3 +233,51 @@ document.addEventListener("DOMContentLoaded", function () {
 
     carregarMedicamentos();
 });
+
+// FUNÇÃO PARA MODAL PERSONALIZADO
+function showCustomConfirm(mensagem) {
+    return new Promise((resolve) => {
+        let modal = document.getElementById("confirm-modal");
+
+        if (!modal) {
+            modal = document.createElement("div");
+            modal.id = "confirm-modal";
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.backgroundColor = "rgba(0,0,0,0.6)";
+            modal.style.display = "flex";
+            modal.style.alignItems = "center";
+            modal.style.justifyContent = "center";
+            modal.style.zIndex = "9999";
+
+            modal.innerHTML = `
+              <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%;">
+                <p id="modal-message" style="margin-bottom: 20px; font-weight: bold;"></p>
+                <button id="modal-yes" style="margin: 0 10px; padding: 10px 20px;">SIM</button>
+                <button id="modal-no" style="margin: 0 10px; padding: 10px 20px;">NÃO</button>
+              </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const messageEl = document.getElementById("modal-message");
+        const btnSim = document.getElementById("modal-yes");
+        const btnNao = document.getElementById("modal-no");
+
+        messageEl.textContent = mensagem;
+        modal.style.display = "flex";
+
+        btnSim.onclick = () => {
+            modal.style.display = "none";
+            resolve(true);
+        };
+
+        btnNao.onclick = () => {
+            modal.style.display = "none";
+            resolve(false);
+        };
+    });
+}
