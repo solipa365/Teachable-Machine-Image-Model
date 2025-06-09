@@ -11,7 +11,6 @@ if (window.navigator.userAgent.indexOf("iPhone") > -1 || window.navigator.userAg
 }
 
 async function init() {
-
     if (webcamRunning) {
         stopWebcam();
     } else {
@@ -112,6 +111,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const dados = localStorage.getItem("medicamentos");
         if (dados) {
             medicamentos = JSON.parse(dados);
+
+            medicamentos.sort((a, b) => a.time.localeCompare(b.time));
+
+            scheduleList.innerHTML = "";
             medicamentos.forEach((med) => {
                 adicionarMedicamentoNaLista(med.name, med.time, med.alerted);
             });
@@ -150,8 +153,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!name || !time) return;
 
         medicamentos.push({ name, time, alerted: false });
+
+        medicamentos.sort((a, b) => a.time.localeCompare(b.time));
         guardarMedicamentos();
-        adicionarMedicamentoNaLista(name, time);
+
+        scheduleList.innerHTML = "";
+        medicamentos.forEach((med) => {
+            adicionarMedicamentoNaLista(med.name, med.time, med.alerted);
+        });
 
         medNameInput.value = "";
         medTimeInput.value = "";
