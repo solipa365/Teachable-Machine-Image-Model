@@ -123,8 +123,13 @@ main div {
 #schedule-form {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.5rem;
     margin-bottom: 2rem;
+    width: 100%;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #schedule-form input,
