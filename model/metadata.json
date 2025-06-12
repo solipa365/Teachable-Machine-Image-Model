@@ -3,13 +3,14 @@
     "tmVersion":"2.4.10",
     "packageVersion":"0.8.4-alpha2",
     "packageName":"@teachablemachine/image",
-    "timeStamp":"2025-05-05T09:49:19.956Z",
+    "timeStamp":"2025-06-12T10:10:26.992Z",
     "userMetadata":{},
-    "modelName":"medicamentos",
-    "labels":
-            [
-                "Vermelho oval",
-                "Branco redondo"
-            ],
+    "modelName":"Smart Medicine Box",
+    "labels":[
+        "Background",
+        "Turox 90mg",
+        "Rinialer 10mg",
+        "Bilastina farmoz"
+    ],
     "imageSize":224
 }
