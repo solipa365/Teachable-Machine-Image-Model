@@ -234,7 +234,6 @@ document.addEventListener("DOMContentLoaded", function () {
     carregarMedicamentos();
 });
 
-// FUNÇÃO PARA MODAL PERSONALIZADO
 function showCustomConfirm(mensagem) {
     return new Promise((resolve) => {
         let modal = document.getElementById("confirm-modal");
