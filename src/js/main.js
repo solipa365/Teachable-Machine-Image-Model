@@ -280,3 +280,96 @@ function showCustomConfirm(mensagem) {
         };
     });
 }
+
+// ========== COMUNICAÇÃO COM ARDUINO VIA WEB SERIAL ========== //
+
+let port;
+let writer;
+
+async function conectarArduino() {
+    console.log("Tentando conectar ao Arduino...");
+    try {
+        port = await navigator.serial.requestPort();
+        console.log("Porta solicitada:", port);
+        await port.open({ baudRate: 9600 });
+        console.log("Porta aberta");
+
+        const encoder = new TextEncoderStream();
+        encoder.readable.pipeTo(port.writable);
+        writer = encoder.writable.getWriter();
+
+        alert("✅ Arduino conectado com sucesso!");
+    } catch (err) {
+        alert("❌ Erro ao conectar com o Arduino: " + err);
+        console.error("Erro na conexão:", err);
+    }
+}
+
+
+async function enviarComandoArduino(comando) {
+    if (writer) {
+        try {
+            await writer.write(comando + "\n");
+            console.log("📤 Comando enviado ao Arduino:", comando);
+        } catch (e) {
+            console.error("❌ Erro ao enviar comando:", e);
+        }
+    } else {
+        console.warn("⚠️ Arduino ainda não está conectado.");
+    }
+}
+
+// ========== BOTÃO DE CONEXÃO ========== //
+document.addEventListener("DOMContentLoaded", function () {
+    const botaoConectar = document.getElementById("btn-conectar-arduino");
+        if (botaoConectar) {
+            botaoConectar.onclick = conectarArduino;
+        } else {
+            console.warn("Botão de conectar Arduino não encontrado no DOM.");
+        }
+
+    botaoConectar.textContent = "🔌 Ligar Arduino";
+    botaoConectar.style.marginTop = "10px";
+    botaoConectar.style.padding = "10px";
+    botaoConectar.style.cursor = "pointer";
+    botaoConectar.onclick = conectarArduino;
+
+    document.body.appendChild(botaoConectar);
+
+    console.log("Botão Ligar Arduino criado e adicionado ao DOM.");
+});
+
+// Modifica apenas a parte do alerta para também enviar comando ao Arduino //
+setInterval(async () => {  // <-- colocar async aqui
+    const agora = new Date();
+    const horaAtual = agora.getHours().toString().padStart(2, "0") + ":" + agora.getMinutes().toString().padStart(2, "0");
+
+    for (const med of medicamentos) { // use for...of para esperar no await
+        if (med.time === horaAtual && !med.alerted) {
+            const alertSound = document.getElementById("alert-sound");
+            if (alertSound) {
+                alertSound.play().catch(error => {
+                    console.error("Erro ao tocar som:", error);
+                });
+            }
+
+            alert(`⏰ Está na hora de tomar o medicamento: ${med.name}`);
+
+            // Envia comando para o Arduino abrir a tampa e aguarda o envio
+            await enviarComandoArduino("ABRIR");
+
+            med.alerted = true;
+            guardarMedicamentos();
+        }
+    }
+
+    const items = scheduleList.querySelectorAll("li");
+    items.forEach((li) => {
+        const texto = li.firstChild.textContent || "";
+        const partes = texto.split(" - ");
+        if (partes.length === 2) {
+            const time = partes[1].trim();
+            atualizarClasseHorario(li, time);
+        }
+    });
+}, 1000);
