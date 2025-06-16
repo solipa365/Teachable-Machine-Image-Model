@@ -305,7 +305,6 @@ async function conectarArduino() {
     }
 }
 
-
 async function enviarComandoArduino(comando) {
     if (writer) {
         try {
@@ -340,11 +339,11 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Modifica apenas a parte do alerta para também enviar comando ao Arduino //
-setInterval(async () => {  // <-- colocar async aqui
+setInterval(async () => {
     const agora = new Date();
     const horaAtual = agora.getHours().toString().padStart(2, "0") + ":" + agora.getMinutes().toString().padStart(2, "0");
 
-    for (const med of medicamentos) { // use for...of para esperar no await
+    for (const med of medicamentos) {
         if (med.time === horaAtual && !med.alerted) {
             const alertSound = document.getElementById("alert-sound");
             if (alertSound) {
