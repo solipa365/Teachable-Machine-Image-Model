@@ -7,10 +7,10 @@
     "userMetadata":{},
     "modelName":"Smart Medicine Box",
     "labels":[
-        "Background",
-        "Turox 90mg",
-        "Rinialer 10mg",
-        "Bilastina farmoz"
-    ],
+                "Background",
+                "Turox 90mg",
+                "Rinialer 10mg",
+                "Bilastina farmoz"
+            ],
     "imageSize":224
 }
