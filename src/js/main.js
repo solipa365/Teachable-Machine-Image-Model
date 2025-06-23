@@ -134,7 +134,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function guardarMedicamentos() {
     localStorage.setItem("medicamentos", JSON.stringify(medicamentos));
+    console.log("guardarMedicamentos is being executed.");
   }
+
+
+guardarMedicamentos(); // Now this call will work
 
   function adicionarMedicamentoNaLista(name, time, alerted = false) {
     const li = document.createElement("li");
@@ -231,9 +235,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }, 1000);
 
-  // Teste para ver no console
-  console.log("Medicamentos carregados:", medicamentos);
-
   carregarMedicamentos();
 
     document.getElementById("btn-conectar-arduino").addEventListener("click", conectarArduino);
@@ -289,32 +290,118 @@ function showCustomConfirm(mensagem) {
 
 // ========== COMUNICAÇÃO COM ARDUINO VIA WEB SERIAL ========== //
 
+// async function conectarArduino() {
+//   try {
+//     const port = await navigator.serial.requestPort();
+//     await port.open({ baudRate: 9600 });
+
+//     const encoder = new TextEncoderStream();
+//     encoder.readable.pipeTo(port.writable);
+//     writer = encoder.writable.getWriter();
+
+//     alert("✅ Arduino conectado!");
+//   } catch (err) {
+//     alert("❌ Erro ao conectar: " + err);
+//     console.error(err);
+//   }
+// }
+
+// async function conectarArduino() {
+//   try {
+//     const port = await navigator.serial.requestPort();
+//     await port.open({ baudRate: 9600 });
+//     // resto da lógica
+//   } catch (err) {
+//     if (err.name === "NotFoundError") {
+//       console.warn("Nenhuma porta foi selecionada.");
+//     } else {
+//       console.error("Erro ao conectar no Arduino:", err);
+//     }
+//   }
+// }
+
 async function conectarArduino() {
   try {
-    const port = await navigator.serial.requestPort();
+    if (port && port.readable) {
+      // Check if a port exists and is readable (implies it's open)
+      console.warn("A porta serial já está aberta.");
+      return; // Exit the function if the port is already open
+    }
+
+    port = await navigator.serial.requestPort(); // Request the port only if not already open
     await port.open({ baudRate: 9600 });
-
-    const encoder = new TextEncoderStream();
-    encoder.readable.pipeTo(port.writable);
-    writer = encoder.writable.getWriter();
-
-    alert("✅ Arduino conectado!");
+    // resto da lógica
   } catch (err) {
-    alert("❌ Erro ao conectar: " + err);
-    console.error(err);
+    if (err.name === "NotFoundError") {
+      console.warn("Nenhuma porta foi selecionada.");
+    } else {
+      console.error("Erro ao conectar no Arduino:", err);
+    }
   }
 }
 
+// async function desconectarArduino() {
+//   if (writer) {
+//     await writer.close();
+//     writer = null;
+//     alert("✅ Arduino desconectado!");
+//   } else {
+//     alert("⚠️ Arduino não conectado.");
+//   }
+// }
+
+async function desconectarArduino() {
+  if (port && port.readable) { // Check if port exists and is readable before closing
+    const reader = port.readable.getReader();
+    if (reader) {
+      await reader.cancel(); // Cancel any ongoing read operations
+      reader.releaseLock();
+    }
+    if (writer) {
+      await writer.close();
+      writer = null;
+    }
+    await port.close();
+    port = null; // Set port to null after closing
+    alert("✅ Arduino desconectado!");
+  } else {
+    alert("⚠️ Arduino não conectado.");
+  }
+}
+
+// async function enviarComandoArduino(comando) {
+//   if (writer) {
+//     try {
+//       await writer.write(comando + "\n");
+//       console.log("Comando enviado:", comando);
+//     } catch (e) {
+//       console.error("Erro ao enviar:", e);
+//     }
+//   } else {
+//     console.warn("⚠️ Arduino não conectado.");
+//   }
+// }
+
 async function enviarComandoArduino(comando) {
-  if (writer) {
+  if (port && port.writable) { // Check if port is open and writable
     try {
+      const textEncoder = new TextEncoderStream();
+      const writableStreamClosed = textEncoder.readable.pipeTo(port.writable);
+      writer = textEncoder.writable.getWriter();
+
       await writer.write(comando + "\n");
       console.log("Comando enviado:", comando);
+
+      // It's often better to keep the writer open if you'll be sending multiple commands.
+      // Close it only when disconnecting.
+      // await writer.close();
+      // await writableStreamClosed;
+
     } catch (e) {
       console.error("Erro ao enviar:", e);
     }
   } else {
-    console.warn("⚠️ Arduino não conectado.");
+    console.warn("⚠️ Arduino não conectado ou porta não aberta.");
   }
 }
 
@@ -372,6 +459,21 @@ setInterval(async () => {
         }
     }
 
+    // const items = scheduleList.querySelectorAll("li");
+    // items.forEach((li) => {
+    //     const texto = li.firstChild.textContent || "";
+    //     const partes = texto.split(" - ");
+    //     if (partes.length === 2) {
+    //         const time = partes[1].trim();
+    //         atualizarClasseHorario(li, time);
+    //     }
+    // });
+}, 1000);
+
+
+const scheduleList = document.getElementById("schedule-list");
+
+if (scheduleList) {
     const items = scheduleList.querySelectorAll("li");
     items.forEach((li) => {
         const texto = li.firstChild.textContent || "";
@@ -381,4 +483,6 @@ setInterval(async () => {
             atualizarClasseHorario(li, time);
         }
     });
-}, 1000);
+} else {
+    console.error("Elemento 'schedule-list' não encontrado no DOM.");
+}
