@@ -1,0 +1,240 @@
+#include <LiquidCrystal.h>
+#include <EEPROM.h>
+
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+const int backlightPin = 10;
+
+#define btnNONE   1023
+#define btnSELECT 741
+#define btnLEFT   505
+#define btnDOWN   326
+#define btnUP     142
+#define btnRIGHT  0
+
+int fakeHour = 8;
+int fakeMinute = 44;
+
+int alarmHour;
+int alarmMinute;
+bool alarmTakenToday = false;
+
+bool editingHour = true;
+bool inEditMode = false;
+unsigned long rightHoldStart = 0;
+unsigned long leftHoldStart = 0;
+
+unsigned long lastAdvance = 0;
+unsigned long lastBlink = 0;
+bool backlightOn = true;
+
+unsigned long scrollTimer = 0;
+int scrollIndex = 0;
+String currentScrollText = "";
+int currentScrollRow = 1;
+bool isScrolling = false;
+
+bool showTakenMessage = false;
+unsigned long takenMsgStart = 0;
+
+bool startupScrollDone = false;
+unsigned long startupStartTime = 0;
+
+int read_LCD_buttons() {
+  int adc_key_in = analogRead(0);
+  if (adc_key_in > 1000) return btnNONE;
+  if (adc_key_in < 50)   return btnRIGHT;
+  if (adc_key_in < 195)  return btnUP;
+  if (adc_key_in < 380)  return btnDOWN;
+  if (adc_key_in < 555)  return btnLEFT;
+  if (adc_key_in < 790)  return btnSELECT;
+  return btnNONE;
+}
+
+void saveAlarmToEEPROM() {
+  EEPROM.update(0, alarmHour);
+  EEPROM.update(1, alarmMinute);
+}
+
+void loadAlarmFromEEPROM() {
+  alarmHour = EEPROM.read(0);
+  alarmMinute = EEPROM.read(1);
+  if (alarmHour > 23 || alarmHour < 0) alarmHour = 9;
+  if (alarmMinute > 59 || alarmMinute < 0) alarmMinute = 0;
+}
+
+void scrollText(String text, int row) {
+  static bool scrollReset = false;
+
+  // Preparar texto com espaços extras no fim para scroll completo
+  String padded = text + "                "; // 16 espaços = largura do visor
+  if (currentScrollText != padded || currentScrollRow != row) {
+    scrollIndex = 0;
+    scrollTimer = millis();
+    currentScrollText = padded;
+    currentScrollRow = row;
+    scrollReset = true;
+  }
+
+  if (millis() - scrollTimer > 500) {
+    lcd.setCursor(0, row);
+    lcd.print(currentScrollText.substring(scrollIndex, scrollIndex + 16));
+    scrollIndex++;
+
+    if (scrollIndex > currentScrollText.length() - 16) {
+      scrollIndex = 0;
+    }
+    scrollTimer = millis();
+  }
+
+  isScrolling = true;
+}
+
+void setup() {
+  lcd.begin(16, 2);
+  pinMode(backlightPin, OUTPUT);
+  digitalWrite(backlightPin, HIGH);
+  loadAlarmFromEEPROM();
+  startupStartTime = millis();
+}
+
+void loop() {
+  int btn = read_LCD_buttons();
+
+  // Mostrar scroll inicial
+  if (!startupScrollDone) {
+    scrollText("Smart Medicine Box", 0);
+    if (millis() - startupStartTime > 4000) {
+      lcd.clear();
+      startupScrollDone = true;
+    }
+    return;
+  }
+
+  // Avançar tempo simulado a cada 60 segundos reais
+  if (millis() - lastAdvance >= 60000) {
+    fakeMinute++;
+    if (fakeMinute >= 60) {
+      fakeMinute = 0;
+      fakeHour++;
+      if (fakeHour >= 24) {
+        fakeHour = 0;
+        alarmTakenToday = false;
+      }
+    }
+    lastAdvance = millis();
+  }
+
+  // Entrar no modo de edição
+  if (btn == btnRIGHT) {
+    if (rightHoldStart == 0) rightHoldStart = millis();
+    if (millis() - rightHoldStart > 2000 && !inEditMode) {
+      inEditMode = true;
+      editingHour = true;
+      lcd.clear();
+    }
+  } else {
+    rightHoldStart = 0;
+  }
+
+  // Sair do modo de edição
+  if (btn == btnLEFT && inEditMode) {
+    if (leftHoldStart == 0) leftHoldStart = millis();
+    if (millis() - leftHoldStart > 2000) {
+      saveAlarmToEEPROM();
+      alarmTakenToday = false;
+      inEditMode = false;
+      lcd.clear();
+    }
+  } else {
+    leftHoldStart = 0;
+  }
+
+  if (inEditMode) {
+    lcd.setCursor(0, 0);
+    lcd.print("Editar Alarme:   ");
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+    lcd.setCursor(0, 1);
+
+    if (editingHour) lcd.print(">");
+    else lcd.print(" ");
+
+    if (alarmHour < 10) lcd.print("0");
+    lcd.print(alarmHour);
+    lcd.print(":");
+
+    if (!editingHour) lcd.print("<");
+    else lcd.print(" ");
+
+    if (alarmMinute < 10) lcd.print("0");
+    lcd.print(alarmMinute);
+    lcd.print("     ");
+
+    if (btn == btnUP) {
+      if (editingHour) alarmHour = (alarmHour + 1) % 24;
+      else alarmMinute = (alarmMinute + 1) % 60;
+      delay(200);
+    } else if (btn == btnDOWN) {
+      if (editingHour) alarmHour = (alarmHour + 23) % 24;
+      else alarmMinute = (alarmMinute + 59) % 60;
+      delay(200);
+    } else if (btn == btnLEFT || btn == btnRIGHT) {
+      editingHour = !editingHour;
+      delay(300);
+    } else if (btn == btnSELECT) {
+      saveAlarmToEEPROM();
+      alarmTakenToday = false;
+      inEditMode = false;
+      lcd.clear();
+      delay(300);
+    }
+
+  } else {
+    // Mostrar hora atual
+    lcd.setCursor(0, 0);
+    lcd.print("Hora: ");
+    if (fakeHour < 10) lcd.print("0");
+    lcd.print(fakeHour);
+    lcd.print(":");
+    if (fakeMinute < 10) lcd.print("0");
+    lcd.print(fakeMinute);
+    lcd.print("  ");
+
+    // Mostrar estado
+    if (showTakenMessage) {
+      scrollText("MEDICAMENTO TOMADO", 1);
+      if (millis() - takenMsgStart > 4000) {
+        showTakenMessage = false;
+        lcd.setCursor(0, 1);
+        lcd.print("                ");
+        isScrolling = false;
+      }
+    } else if (fakeHour == alarmHour && fakeMinute == alarmMinute && !alarmTakenToday) {
+      scrollText(">> HORA DE TOMAR <<", 1);
+
+      if (millis() - lastBlink >= 500) {
+        digitalWrite(backlightPin, backlightOn ? LOW : HIGH);
+        backlightOn = !backlightOn;
+        lastBlink = millis();
+      }
+
+      if (btn == btnSELECT) {
+        digitalWrite(backlightPin, HIGH);
+        scrollText("MEDICAMENTO TOMADO", 1);
+        alarmTakenToday = true;
+        takenMsgStart = millis();
+        showTakenMessage = true;
+      }
+
+    } else {
+      digitalWrite(backlightPin, HIGH);
+      if (!isScrolling) {
+        lcd.setCursor(0, 1);
+        lcd.print("                ");
+      }
+    }
+  }
+
+  delay(100);
+}

@@ -13,7 +13,7 @@ const int backlightPin = 10;
 #define btnUP 142
 #define btnRIGHT 0
 
-int fakeHour = 21;
+int fakeHour = 20;
 int fakeMinute = 00;
 
 bool alarmTakenToday = false;
@@ -109,21 +109,7 @@ void loop() {
     String comando = Serial.readStringUntil('\n');
     comando.trim();
 
-    // Novo comando para sincronizar hora
-    if (comando.startsWith("HORA|")) {
-      String horaStr = comando.substring(5); // pegar HH:MM
-      int sep = horaStr.indexOf(':');
-      if (sep != -1) {
-        int h = horaStr.substring(0, sep).toInt();
-        int m = horaStr.substring(sep + 1).toInt();
-
-        // Atualiza a hora interna
-        fakeHour = h;
-        fakeMinute = m;
-
-        Serial.println("Hora sincronizada: " + horaStr);
-      }
-    } else if (comando.startsWith("MED|")) {
+    if (comando.startsWith("MED|")) {
       if (totalMedicamentos < 5) {
         int p1 = comando.indexOf('|', 4);
         if (p1 != -1) {
@@ -185,8 +171,7 @@ void loop() {
     return;
   }
 
-  // AVANÇAR TEMPO SIMULADO DESATIVADO PARA SINCRONIZAÇÃO PELO PC
-  /*
+  // 🕐 Avançar tempo simulado
   if (millis() - lastAdvance >= 60000) {
     fakeMinute++;
     if (fakeMinute >= 60) {
@@ -199,9 +184,8 @@ void loop() {
     }
     lastAdvance = millis();
   }
-  */
 
-  // 🛠 Editar hora manualmente pelo botão no Arduino
+  // 🛠 Editar hora
   if (btn == btnRIGHT) {
     if (rightHoldStart == 0)
       rightHoldStart = millis();
